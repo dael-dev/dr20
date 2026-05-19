@@ -11,11 +11,13 @@ pub const TOTAL_WIDTH: u16 = 240;
 pub const SINGLE_EL_WIDTH: u16 = 12;
 
 pub fn view(app: &App) -> Element<'_, Message> {
+    let (left, right) = app.prompt_parts();
+    
     column![
         scrollable(view_results(app))
             .height(Length::Fill)
             .width(Length::Fill),
-        text(app.render_output_str()),
+        text(format!("{}|{}", left, right)),
         container(view_key_pad())
             .height(350)
     ]

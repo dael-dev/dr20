@@ -5,5 +5,4 @@ pub enum Message {
     EventOccurred(Event),
     RollPress,
     StrPadPressed(String),
-    InputChanged(String),
 }
