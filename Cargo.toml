@@ -1,7 +1,11 @@
 [package]
 name = "dd20"
 version = "0.1.0"
+authors = "Ben Parsonage <ben@parsonage.dev>"
+year = "2026"
 edition = "2024"
+
+license = "MIT"
 
 [dependencies]
 iced = "0.14.0"
