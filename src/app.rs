@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use tyche::dice::roller::FastRand;
+use tyche::dice::{roller::FastRand};
 use tyche::expr::Describe;
 use tyche::Expr;
 
@@ -14,12 +14,41 @@ pub struct RollResult {
     pub text: String,
 }
 
+//Simplified version of iced KeyPressEvent to pass to diffrent context
+#[derive(Debug, Clone)]
+struct KeyPress {
+    pub key: keyboard::Key,
+    pub text: Option<String>,
+    pub modifiers: keyboard::Modifiers,
+}
+
+impl KeyPress {
+    pub fn from_keyboard_event(event: keyboard::Event) -> Option<Self> {
+        match event {
+            keyboard::Event::KeyPressed {
+                    key,
+                    text,
+                    modifiers,
+                    ..
+                }
+             => Some(Self {
+                key,
+                text: text.map(|s| s.to_string()),
+                modifiers,
+            }),
+
+            _ => None,
+        }
+    }
+}
+
 pub struct App {
     roller: tyche::dice::roller::FastRand,
     ip_left: String,
     ip_right: String,
     pub results: VecDeque<RollResult>,
     history_size: usize,
+    err_string: Option<String>,
 }
 
 impl Default for App {
@@ -29,7 +58,8 @@ impl Default for App {
             ip_left: "4d6rr1k3 ".to_string(),
             ip_right: String::default(),
             results: VecDeque::default(),
-            history_size: 100
+            history_size: 100,
+            err_string: None
         }   
     } 
 }
@@ -45,10 +75,12 @@ impl App {
 
     fn roll(&mut self) {
         let expr: Expr = match self.command_string().parse() {
-            Ok(v) => v,
+            Ok(v) => {
+                self.err_string = None;
+                v
+            }
             Err(error) => {
-                self.ip_left = error.to_string();
-                self.ip_right.clear();
+                self.err_string = Some(error.to_string());
                 return;
             }
         };
@@ -86,50 +118,17 @@ impl App {
         //self.ip_right.clear();
     }
 
+    pub fn get_error(&self) -> &Option<String> {
+        &self.err_string
+    }
+
     pub fn update(&mut self, message: Message) {
         match message {
             Message::RollPress => self.roll(),
             Message::StrPadPressed(s) => self.update_strpad_pressed(&s),
-            Message::EventOccurred(Event::Keyboard(
-                keyboard::Event::KeyPressed { key, text,.. }
-            )) => {
-                match key.as_ref() {
-                    keyboard::Key::Character(_) => {
-                        if let Some(text) = text {
-                            self.ip_left.push_str(text.as_str());
-                        }
-                    }
-
-                    keyboard::Key::Named(
-                        keyboard::key::Named::ArrowLeft
-                    ) => {
-                        if let Some(ch) = self.ip_left.pop() {
-                            self.ip_right.insert(0, ch);
-                        }
-                    }
-
-                    keyboard::Key::Named(
-                        keyboard::key::Named::ArrowRight
-                    ) => {
-                        if !self.ip_right.is_empty() {
-                            let ch = self.ip_right.remove(0);
-                            self.ip_left.push(ch);
-                        }
-                    }
-
-                    keyboard::Key::Named(
-                        keyboard::key::Named::Backspace
-                    ) => {
-                        self.ip_left.pop();
-                    }
-
-                    keyboard::Key::Named(
-                        keyboard::key::Named::Enter
-                    ) => {
-                        self.roll();
-                    }
-
-                    _ => {}
+            Message::EventOccurred(Event::Keyboard(event)) => {
+                if let Some(kp) = KeyPress::from_keyboard_event(event){
+                    self.update_keyboard_event(kp);
                 }
             }
             _ => {}
@@ -144,6 +143,35 @@ impl App {
             "←"    =>self.cursor_left(),
             "→"    => self.cursor_right(),
             _      => self.ip_left.push_str(s),
+        }
+    }
+
+    fn update_keyboard_event(&mut self, key_press: KeyPress) 
+    {
+        match key_press.key.as_ref() {
+            keyboard::Key::Character(_) => {
+                if let Some(text) = key_press.text {
+                    self.ip_left.push_str(text.as_str());
+                }
+            }
+
+            keyboard::Key::Named(
+                keyboard::key::Named::ArrowLeft
+            ) => self.cursor_left(),
+
+            keyboard::Key::Named(
+                keyboard::key::Named::ArrowRight
+            ) => self.cursor_right(),
+
+            keyboard::Key::Named(
+                keyboard::key::Named::Backspace
+            ) => self.backspace(),
+
+            keyboard::Key::Named(
+                keyboard::key::Named::Enter
+            ) => self.roll(),
+
+            _ => {}
         }
     }
 
@@ -168,7 +196,4 @@ impl App {
             self.ip_left.push(ch);
         }
     }
-
-
-
 }

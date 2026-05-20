@@ -1,5 +1,5 @@
 use iced::widget::{Space, button, column, container, row, scrollable, text};
-use iced::{Element, Length};
+use iced::{Background, Color, Element, Length, Theme};
 
 
 use crate::app::App;
@@ -13,20 +13,31 @@ pub const SINGLE_EL_WIDTH: u16 = 12;
 pub fn view(app: &App) -> Element<'_, Message> {
     let (left, right) = app.prompt_parts();
     
-    column![
-        scrollable(view_results(app))
-            .height(Length::Fill)
-            .width(Length::Fill),
-        text(format!("{}|{}", left, right)),
-        container(view_key_pad())
-            .height(350)
-    ]
-    .padding(20)
-    .spacing(10)
-    .into()
+    let mut main_col = column![
+            scrollable(view_results(app))
+                .height(Length::Fill)
+                .width(Length::Fill)
+        ]
+        .padding(20)
+        .spacing(10);
+ 
+    if let Some(error_string) = app.get_error() {
+        main_col = main_col
+            .push(error_box(error_string));
+    }
+
+    main_col = main_col
+        .push(
+            text(format!("{}|{}", left, right))
+        )
+        .push(
+            container(view_key_pad()).height(350)
+        );
+
+    main_col.into()
 }
 
-fn view_results(app: &App) -> Element<Message>
+fn view_results(app: &App) -> Element<'_, Message>
 {
     column![
         app.results
@@ -180,4 +191,22 @@ fn keypad_button(label: &'static str, width: ButtonWidth, height: ButtonHeight) 
         .height(height.value())
         .on_press(Message::StrPadPressed(label.to_string()))
         .into()
+}
+
+fn error_box<'a>(message: &'a str) -> Element<'a, Message> {
+    container(
+        text(message)
+            .size(16)
+    )
+    .padding(10)
+    .style(|_theme: &Theme| container::Style {
+        background: Some(Background::Color(Color::from_rgb8(80, 20, 20))),
+        text_color: Some(Color::WHITE),
+        border: iced::Border {
+            radius: 6.0.into(),
+            ..Default::default()
+        },
+        ..Default::default()
+    })
+    .into()
 }
