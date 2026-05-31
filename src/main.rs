@@ -8,6 +8,8 @@ use message::Message;
 
 mod ui;
 
+mod profile;
+
 pub fn main() -> iced::Result {
     iced::application(App::default, App::update, ui::view)
         .window(window::Settings {

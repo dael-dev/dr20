@@ -7,6 +7,7 @@ use tyche::Expr;
 use iced::{Event, keyboard};
 
 use crate::message::Message;
+use crate::profile::Profile;
 
 #[derive(Default)]
 pub struct RollResult {
@@ -49,18 +50,25 @@ pub struct App {
     pub results: VecDeque<RollResult>,
     history_size: usize,
     err_string: Option<String>,
+
+    profile: Profile,
 }
 
 impl Default for App {
     fn default() -> Self {
-        Self {
+        let s = Self {
             roller: FastRand::default(),
             ip_left: "4d6rr1k3 ".to_string(),
             ip_right: String::default(),
             results: VecDeque::default(),
             history_size: 100,
-            err_string: None
-        }   
+            err_string: None,
+            profile: Profile::default(),
+        };  
+
+        //Debug section
+        println!("{:#?}", s.profile);
+        return s
     } 
 }
 
