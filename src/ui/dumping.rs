@@ -1,45 +1,16 @@
-use iced::widget::{Space, button, column, container, row, scrollable, text, Grid, Id};
+use iced::widget::{Space, button, column, container, row, text, Grid};
 use iced::{Background, Color, Element, Length, Theme};
-
 
 use crate::app::App;
 use crate::app::RollResult;
 
-use crate::message::{Message, RESULTS_SCROLL};
+use crate::message::Message;
 use crate::profile::{Profile, ReplacementVariable};
 
-pub const TOTAL_WIDTH: u16 = 240;
-pub const SINGLE_EL_WIDTH: u16 = 12;
+pub(super) const TOTAL_WIDTH: u16 = 240;
+pub(super) const SINGLE_EL_WIDTH: u16 = 12;
 
-pub fn view(app: &App) -> Element<'_, Message> {
-    let (left, right) = app.prompt_parts();
-    
-    let mut main_col = column![
-            scrollable(view_results(app))
-                .height(Length::Fill)
-                .width(Length::Fill)
-                .id(RESULTS_SCROLL.clone())
-        ]
-        .padding(20)
-        .spacing(10);
- 
-    if let Some(error_string) = app.get_error() {
-        main_col = main_col
-            .push(error_box(error_string));
-    }
-
-    main_col = main_col
-        .push(
-            text(format!("{}|{}", left, right))
-        )
-        .push(
-            container(view_key_pad()).height(350)
-        );
-
-    row![main_col, view_profile(app.get_current_profile().expect("msg"))].into()
-}
-
-fn view_results(app: &App) -> Element<'_, Message>
+pub(super) fn view_results(app: &App) -> Element<'_, Message>
 {
     column![
         app.results
@@ -70,7 +41,7 @@ fn result_roll(result: &RollResult)-> Element<'_, Message> {
     .into()
 }
 
-fn view_key_pad() -> Element<'static, Message> {
+pub(super) fn view_key_pad() -> Element<'static, Message> {
     column![
         row![
             keypad_button("Max", ButtonWidth::OneAndHalf, ButtonHeight::TwoThirds),
@@ -150,14 +121,14 @@ fn view_key_pad() -> Element<'static, Message> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ButtonWidth {
+pub(super) enum ButtonWidth {
     Single,
     OneAndHalf,
     Double,
 }
 
 impl ButtonWidth {
-    pub fn value(self) -> u16 {
+    pub(super) fn value(self) -> u16 {
         match self {
             Self::Single => 2 * SINGLE_EL_WIDTH,
             Self::OneAndHalf => 3 * SINGLE_EL_WIDTH,
@@ -166,10 +137,10 @@ impl ButtonWidth {
     }
 }
 
-pub const BUTTON_HEIGHT_BASE: f32 = 48.0;
+pub(super) const BUTTON_HEIGHT_BASE: f32 = 48.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ButtonHeight{
+pub(super) enum ButtonHeight{
     TwoThirds,
     Single,
     OneAndHalf,
@@ -177,7 +148,7 @@ pub enum ButtonHeight{
 }
 
 impl ButtonHeight {
-    pub fn value(self) -> Length {
+    pub(super) fn value(self) -> Length {
         match self {
             Self::TwoThirds => Length::Fixed(2.0 * BUTTON_HEIGHT_BASE / 3.0),
             Self::Single => Length::Fixed(BUTTON_HEIGHT_BASE),
@@ -195,7 +166,7 @@ fn keypad_button(label: &'static str, width: ButtonWidth, height: ButtonHeight) 
         .into()
 }
 
-fn error_box<'a>(message: &'a str) -> Element<'a, Message> {
+pub(super) fn error_box<'a>(message: &'a str) -> Element<'a, Message> {
     container(
         text(message)
             .size(16)
@@ -213,7 +184,7 @@ fn error_box<'a>(message: &'a str) -> Element<'a, Message> {
     .into()
 }
 
-fn view_profile(prof: &Profile) -> Element<'_, Message> {
+pub(super) fn view_profile(prof: &Profile) -> Element<'_, Message> {
     column![view_replacment_vars(&prof.vars)].into()
 }
 

@@ -6,5 +6,3 @@ pub enum Message {
     RollPress,
     StrPadPressed(String),
 }
-
-pub const RESULTS_SCROLL: Id = Id::new("results");

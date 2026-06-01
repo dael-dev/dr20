@@ -7,8 +7,9 @@ use tyche::Expr;
 use iced::{Event, keyboard, Task};
 use iced::widget::operation::{self, RelativeOffset};
 
-use crate::message::{Message, RESULTS_SCROLL};
+use crate::message::Message;
 use crate::profile::Profile;
+use crate::ui::RESULTS_SCROLL;
 
 #[derive(Default)]
 pub struct RollResult {

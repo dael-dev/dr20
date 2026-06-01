@@ -3,11 +3,10 @@ use iced::{Size, Subscription, Theme, event, window};
 mod app;
 use app::App;
 
-pub mod message;
+mod message;
 use message::Message;
 
 mod ui;
-
 mod profile;
 
 pub fn main() -> iced::Result {
