@@ -1,4 +1,4 @@
-use iced::{Event};
+use iced::{Event, widget::Id};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -6,3 +6,5 @@ pub enum Message {
     RollPress,
     StrPadPressed(String),
 }
+
+pub const RESULTS_SCROLL: Id = Id::new("results");

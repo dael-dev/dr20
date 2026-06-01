@@ -38,8 +38,8 @@ static  SAMPLE_YAML: &str  = r#"
 #[derive(Debug, Deserialize)]
 pub struct Profile
 {
-    vars: Vec<ReplacementVariable>,
-    rolls: Vec<RollGroup>
+    pub vars: Vec<ReplacementVariable>,
+    pub rolls: Vec<RollGroup>
 }
 
 impl Default for Profile {
@@ -58,14 +58,14 @@ impl Default for Profile {
 
 
 #[derive(Debug, Default, Deserialize)]
-struct ReplacementVariable
+pub struct ReplacementVariable
 {
-    name: String,
-    value: i32
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct RollGroup
+pub struct RollGroup
 {
     name: String,
     shortcut: char,
@@ -79,7 +79,7 @@ struct RollGroup
 }
 
 #[derive(Debug, Deserialize)]
-struct TaggedExpression
+pub struct TaggedExpression
 {
     label: String,
     expression: String

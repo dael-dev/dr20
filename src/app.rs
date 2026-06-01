@@ -4,9 +4,10 @@ use tyche::dice::{roller::FastRand};
 use tyche::expr::Describe;
 use tyche::Expr;
 
-use iced::{Event, keyboard};
+use iced::{Event, keyboard, Task};
+use iced::widget::operation::{self, RelativeOffset};
 
-use crate::message::Message;
+use crate::message::{Message, RESULTS_SCROLL};
 use crate::profile::Profile;
 
 #[derive(Default)]
@@ -81,7 +82,7 @@ impl App {
         (&self.ip_left, &self.ip_right)
     } 
 
-    fn roll(&mut self) {
+    fn roll(&mut self) -> Task<Message> {
         let expr: Expr = match self.command_string().parse() {
             Ok(v) => {
                 self.err_string = None;
@@ -89,7 +90,7 @@ impl App {
             }
             Err(error) => {
                 self.err_string = Some(error.to_string());
-                return;
+                return Task::none();
             }
         };
 
@@ -98,7 +99,7 @@ impl App {
             Err(error) => {
                 self.ip_left = error.to_string();
                 self.ip_right.clear();
-                return;   
+                return Task::none();   
             }
         };
 
@@ -107,7 +108,7 @@ impl App {
             Err(error) => {
                 self.ip_left = error.to_string();
                 self.ip_right.clear();
-                return;   
+                return Task::none();   
             }
         };
 
@@ -121,46 +122,55 @@ impl App {
         while self.results.len() > self.history_size {
             self.results.pop_front();
         }
-        
-        //self.ip_left.clear();
-        //self.ip_right.clear();
+
+        operation::snap_to(
+            RESULTS_SCROLL.clone(),
+            RelativeOffset { x: 0.0, y: 1.0}
+        )
     }
 
     pub fn get_error(&self) -> &Option<String> {
         &self.err_string
     }
 
-    pub fn update(&mut self, message: Message) {
+    pub fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::RollPress => self.roll(),
-            Message::StrPadPressed(s) => self.update_strpad_pressed(&s),
+            Message::StrPadPressed(s) => {
+                self.update_strpad_pressed(&s)
+            }
             Message::EventOccurred(Event::Keyboard(event)) => {
-                if let Some(kp) = KeyPress::from_keyboard_event(event){
-                    self.update_keyboard_event(kp);
+                match KeyPress::from_keyboard_event(event)
+                {
+                    Some(kp) => self.update_keyboard_event(kp),
+                    None => Task::none()
                 }
             }
-            _ => {}
+            _ => Task::none(),
         }
     }
 
-    fn update_strpad_pressed(&mut self, s: &str) {
+    fn update_strpad_pressed(&mut self, s: &str) -> Task<Message>{
         match s {
             "ROLL" => self.roll(),
             "⌫"    => self.backspace(),
             "CLR"  => self.clear_prompt(),
             "←"    =>self.cursor_left(),
             "→"    => self.cursor_right(),
-            _      => self.ip_left.push_str(s),
+            _      => {
+                    self.ip_left.push_str(s);
+                    Task::none()
+                }
         }
     }
 
-    fn update_keyboard_event(&mut self, key_press: KeyPress) 
+    fn update_keyboard_event(&mut self, key_press: KeyPress) -> Task<Message>
     {
         match key_press.key.as_ref() {
             keyboard::Key::Character(_) => {
                 if let Some(text) = key_press.text {
                     self.ip_left.push_str(text.as_str());
                 }
+                Task::none()
             }
 
             keyboard::Key::Named(
@@ -179,29 +189,37 @@ impl App {
                 keyboard::key::Named::Enter
             ) => self.roll(),
 
-            _ => {}
+            _ => Task::none()
         }
     }
 
-    fn backspace(&mut self) {
+    fn backspace(&mut self) -> Task<Message> {
         self.ip_left.pop();
+        Task::none()
     }
 
-    fn clear_prompt(&mut self){
+    fn clear_prompt(&mut self) -> Task<Message> {
         self.ip_left.clear();
         self.ip_right.clear();
+        Task::none()
     }
 
-    fn cursor_left(&mut self) {
+    fn cursor_left(&mut self) -> Task<Message> {
         if let Some(ch) = self.ip_left.pop() {
             self.ip_right.insert(0, ch)
         }
+        Task::none()
     }
 
-    fn cursor_right(&mut self) {
+    fn cursor_right(&mut self) -> Task<Message> {
         if !self.ip_right.is_empty() {
             let ch = self.ip_right.remove(0);
             self.ip_left.push(ch);
         }
+        Task::none()
+    }
+
+    pub fn get_current_profile(&self) -> Option<&Profile> {
+        Some(&self.profile)
     }
 }

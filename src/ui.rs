@@ -1,11 +1,12 @@
-use iced::widget::{Space, button, column, container, row, scrollable, text};
+use iced::widget::{Space, button, column, container, row, scrollable, text, Grid, Id};
 use iced::{Background, Color, Element, Length, Theme};
 
 
 use crate::app::App;
 use crate::app::RollResult;
 
-use crate::message::Message;
+use crate::message::{Message, RESULTS_SCROLL};
+use crate::profile::{Profile, ReplacementVariable};
 
 pub const TOTAL_WIDTH: u16 = 240;
 pub const SINGLE_EL_WIDTH: u16 = 12;
@@ -17,6 +18,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
             scrollable(view_results(app))
                 .height(Length::Fill)
                 .width(Length::Fill)
+                .id(RESULTS_SCROLL.clone())
         ]
         .padding(20)
         .spacing(10);
@@ -34,7 +36,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
             container(view_key_pad()).height(350)
         );
 
-    main_col.into()
+    row![main_col, view_profile(app.get_current_profile().expect("msg"))].into()
 }
 
 fn view_results(app: &App) -> Element<'_, Message>
@@ -208,5 +210,27 @@ fn error_box<'a>(message: &'a str) -> Element<'a, Message> {
         },
         ..Default::default()
     })
+    .into()
+}
+
+fn view_profile(prof: &Profile) -> Element<'_, Message> {
+    column![view_replacment_vars(&prof.vars)].into()
+}
+
+fn view_replacment_vars<'a>(vs :&'a[ReplacementVariable]) -> Element<'_, Message> {
+   // fn view_items<'a>(items: &'a [Item]) -> Element<'a, Message> {
+    vs.iter().fold(
+        Grid::new()
+            .columns(4)
+            .spacing(8),
+        |grid, v| {
+            grid.push(
+                column![
+                    text(&v.name),
+                    text(&v.value)
+                ]
+            )
+        },
+    )
     .into()
 }
