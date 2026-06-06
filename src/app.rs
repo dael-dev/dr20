@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-
+use iced::keyboard::key::{Code, Physical};
 use tyche::dice::{roller::FastRand};
 use tyche::expr::Describe;
 use tyche::Expr;
@@ -8,7 +8,7 @@ use iced::{Event, keyboard, Task};
 use iced::widget::operation::{self, RelativeOffset};
 
 use crate::message::Message;
-use crate::profile::Profile;
+use crate::profile::{Profile};
 use crate::ui::RESULTS_SCROLL;
 
 #[derive(Default)]
@@ -19,9 +19,17 @@ pub struct RollResult {
 
 //Simplified version of iced KeyPressEvent to pass to diffrent context
 #[derive(Debug, Clone)]
-struct KeyPress {
+pub struct KeyPress {
+    /// Logical key: useful for prompt/text editing semantics.
     pub key: keyboard::Key,
+
+    /// Text produced by the keypress, e.g. "s", "S", "ß".
     pub text: Option<String>,
+
+    /// Physical key location, e.g. Code::KeyS.
+    /// This is what profile shortcuts should use.
+    pub code: Option<Code>,
+
     pub modifiers: keyboard::Modifiers,
 }
 
@@ -29,20 +37,32 @@ impl KeyPress {
     pub fn from_keyboard_event(event: keyboard::Event) -> Option<Self> {
         match event {
             keyboard::Event::KeyPressed {
-                    key,
-                    text,
-                    modifiers,
-                    ..
-                }
-             => Some(Self {
                 key,
-                text: text.map(|s| s.to_string()),
+                text,
+                physical_key,
                 modifiers,
-            }),
+                ..
+            } => {
+                let code = match physical_key {
+                    Physical::Code(code) => Some(code),
+                    Physical::Unidentified(_) => None,
+                };
+                Some(Self {
+                    key,
+                    text: text.map(String::from),
+                    code,
+                    modifiers,
+                })
+            }
 
             _ => None,
         }
     }
+}
+
+enum SemanticFocus {
+    KeyPad,
+    Profile(usize)
 }
 
 pub struct App {
@@ -53,6 +73,7 @@ pub struct App {
     history_size: usize,
     err_string: Option<String>,
 
+    sem_focus: SemanticFocus,
     profile: Profile,
 }
 
@@ -65,11 +86,12 @@ impl Default for App {
             results: VecDeque::default(),
             history_size: 100,
             err_string: None,
-            profile: Profile::default(),
+            sem_focus: SemanticFocus::Profile(0),
+            profile: Profile::demo(),
         };  
 
         //Debug section
-        println!("{:#?}", s.profile);
+       //println!("{:#?}", s.profile);
         return s
     } 
 }
@@ -83,8 +105,8 @@ impl App {
         (&self.ip_left, &self.ip_right)
     } 
 
-    fn roll(&mut self) -> Task<Message> {
-        let expr: Expr = match self.command_string().parse() {
+    fn roll(&mut self, exp: String) -> Task<Message> {
+        let expr: Expr = match exp.parse() {
             Ok(v) => {
                 self.err_string = None;
                 v
@@ -146,13 +168,17 @@ impl App {
                     None => Task::none()
                 }
             }
+            Message::RollExpression(id) => {
+                let exp = self.profile.get_expression(id).unwrap();
+                self.roll(exp.prepared.clone().unwrap())
+            }
             _ => Task::none(),
         }
     }
 
     fn update_strpad_pressed(&mut self, s: &str) -> Task<Message>{
         match s {
-            "ROLL" => self.roll(),
+            "ROLL" => self.roll(self.command_string()),
             "⌫"    => self.backspace(),
             "CLR"  => self.clear_prompt(),
             "←"    =>self.cursor_left(),
@@ -164,14 +190,23 @@ impl App {
         }
     }
 
-    fn update_keyboard_event(&mut self, key_press: KeyPress) -> Task<Message>
-    {
+    fn update_keyboard_event(&mut self, key_press: KeyPress) -> Task<Message> {
         match key_press.key.as_ref() {
             keyboard::Key::Character(_) => {
-                if let Some(text) = key_press.text {
-                    self.ip_left.push_str(text.as_str());
+                match self.sem_focus {
+                    SemanticFocus::KeyPad => {
+                        if let Some(text) = key_press.text {
+                            self.ip_left.push_str(text.as_str());
+                        }
+                        Task::none()
+                    }
+                    SemanticFocus::Profile(_) => {
+                        match self.profile.get_expression_for_keypress(&key_press) {
+                            Some(ex) => self.roll(ex.prepared.clone().unwrap()),
+                            None => Task::none()
+                        }
+                    }
                 }
-                Task::none()
             }
 
             keyboard::Key::Named(
@@ -188,7 +223,7 @@ impl App {
 
             keyboard::Key::Named(
                 keyboard::key::Named::Enter
-            ) => self.roll(),
+            ) => self.roll(self.command_string()),
 
             _ => Task::none()
         }
@@ -223,4 +258,5 @@ impl App {
     pub fn get_current_profile(&self) -> Option<&Profile> {
         Some(&self.profile)
     }
+
 }

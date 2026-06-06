@@ -1,15 +1,24 @@
-
-use iced::widget::{Space, button, column, container, row, scrollable, text, Grid, Id};
-use iced::{Background, Color, Element, Length, Theme};
+use iced::widget::{column, container, row, scrollable, text, Id};
+use iced::{Element, Length};
 
 use crate::app::App;
 
 mod dumping;
-use dumping::{view_results, view_profile, view_key_pad, error_box};
+use dumping:: error_box;
+
+mod results;
+use results::view_results;
+
+mod keypad;
+use keypad::view_keypad;
+
+mod profile;
+use profile::view_profile;
 
 use crate::message::Message;
 
-pub const RESULTS_SCROLL: Id = Id::new("results");
+pub(super) const SINGLE_EL_WIDTH: u16 = 12;
+pub(crate) const RESULTS_SCROLL: Id = Id::new("results");
 
 pub fn view(app: &App) -> Element<'_, Message> {
     let (left, right) = app.prompt_parts();
@@ -33,7 +42,7 @@ pub fn view(app: &App) -> Element<'_, Message> {
             text(format!("{}|{}", left, right))
         )
         .push(
-            container(view_key_pad()).height(350)
+            container(view_keypad()).height(350)
         );
 
     row![main_col, view_profile(app.get_current_profile().expect("msg"))].into()

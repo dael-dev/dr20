@@ -1,8 +1,9 @@
-use iced::{Event, widget::Id};
+use iced::{Event};
+use crate::profile::ExprId;
 
 #[derive(Debug, Clone)]
 pub enum Message {
     EventOccurred(Event),
-    RollPress,
     StrPadPressed(String),
+    RollExpression(ExprId),
 }
